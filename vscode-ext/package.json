@@ -1,0 +1,167 @@
+{
+	"name": "code-wiki",
+	"displayName": "Code Wiki",
+	"description": "View and navigate CodeWiki repository documentation directly in VS Code",
+	"version": "0.1.0",
+	"publisher": "codewiki",
+	"engines": {
+		"vscode": "^1.85.0"
+	},
+	"categories": [
+		"Other"
+	],
+	"keywords": [
+		"codewiki",
+		"wiki",
+		"documentation",
+		"markdown"
+	],
+	"activationEvents": [
+		"onStartupFinished"
+	],
+	"main": "./out/extension.js",
+	"contributes": {
+		"views": {
+			"explorer": [
+				{
+					"id": "codewiki",
+					"name": "Code Wiki",
+					"icon": "$(book)",
+					"contextualTitle": "CodeWiki Repository Documentation",
+					"visibility": "visible"
+				}
+			]
+		},
+		"viewsWelcome": [
+			{
+				"view": "codewiki",
+				"when": "workspaceFolderCount == 0",
+				"contents": "No folder opened.\n\nOpen a folder to view its CodeWiki documentation."
+			},
+			{
+				"view": "codewiki",
+				"when": "workspaceFolderCount > 0",
+				"contents": "No CodeWiki documentation found in this workspace.\n\nThe documentation should be located at `.codewiki/`"
+			}
+		],
+		"commands": [
+			{
+				"command": "codewiki.refresh",
+				"title": "Refresh",
+				"icon": "$(refresh)",
+				"category": "Code Wiki"
+			},
+			{
+				"command": "codewiki.openFile",
+				"title": "Open Wiki File",
+				"category": "Code Wiki"
+			},
+			{
+				"command": "codewiki.openInEditor",
+				"title": "Open in Editor",
+				"category": "Code Wiki"
+			},
+			{
+				"command": "codewiki.showDebugOutput",
+				"title": "Show Debug Output",
+				"icon": "$(output)",
+				"category": "Code Wiki"
+			},
+			{
+				"command": "codewiki.showMermaidErrors",
+				"title": "Show Mermaid Errors",
+				"icon": "$(error)",
+				"category": "Code Wiki"
+			},
+			{
+				"command": "codewiki.clearDebugOutput",
+				"title": "Clear Debug Output",
+				"icon": "$(clear-all)",
+				"category": "Code Wiki"
+			},
+			{
+				"command": "codewiki.fixMermaidErrors",
+				"title": "Fix Mermaid Errors with Copilot",
+				"icon": "$(sparkle)",
+				"category": "Code Wiki"
+			},
+			{
+				"command": "codewiki.showErrorReport",
+				"title": "Show Mermaid Error Report",
+				"icon": "$(report)",
+				"category": "Code Wiki"
+			},
+			{
+				"command": "codewiki.copyPromptToClipboard",
+				"title": "Copy Mermaid Error Prompt to Clipboard",
+				"icon": "$(clippy)",
+				"category": "Code Wiki"
+			}
+		],
+		"menus": {
+			"view/title": [
+				{
+					"command": "codewiki.refresh",
+					"when": "view == codewiki",
+					"group": "navigation"
+				}
+			]
+		},
+		"configuration": {
+			"title": "Code Wiki",
+			"properties": {
+				"codewiki.autoDetectMermaidErrors": {
+					"type": "boolean",
+					"default": false,
+					"description": "Automatically detect and prompt to fix Mermaid errors"
+				},
+				"codewiki.mermaid.theme": {
+					"type": "string",
+					"enum": [
+						"auto",
+						"default",
+						"dark",
+						"forest",
+						"neutral"
+					],
+					"default": "auto",
+					"description": "Theme for Mermaid diagrams"
+				}
+			}
+		}
+	},
+	"scripts": {
+		"vscode:prepublish": "npm run compile",
+		"compile": "tsc -p ./",
+		"watch": "tsc -watch -p ./",
+		"pretest": "npm run compile",
+		"test": "jest",
+		"test:watch": "jest --watch",
+		"test:coverage": "jest --coverage",
+		"test:integration": "jest tests/integration",
+		"lint": "eslint src --ext ts",
+		"package": "vsce package",
+		"scan:mermaid": "node scripts/scan-mermaid-errors.js",
+		"fix:mermaid": "node scripts/scan-mermaid-errors.js && echo '\n📋 Review MERMAID_FIX_PROMPT.txt and copy to Copilot'"
+	},
+	"dependencies": {
+		"marked": "^11.0.0",
+		"mermaid": "11.12.1"
+	},
+	"devDependencies": {
+		"@types/dompurify": "^3.0.5",
+		"@types/jest": "^29.5.14",
+		"@types/node": "^20.x",
+		"@types/vscode": "^1.85.0",
+		"@typescript-eslint/eslint-plugin": "^6.x",
+		"@typescript-eslint/parser": "^6.x",
+		"@vscode/vsce": "^3.7.0",
+		"dompurify": "^3.3.0",
+		"eslint": "^8.x",
+		"jest": "^29.7.0",
+		"jsdom": "^27.2.0",
+		"ts-jest": "^29.4.5",
+		"typescript": "^5.3.0"
+	},
+	"license": "MIT"
+}

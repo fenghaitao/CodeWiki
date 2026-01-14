@@ -1,22 +1,117 @@
 # Code Wiki Extension
 
-View and navigate Code Wiki repository documentation directly in VS Code.
+View and navigate Code Wiki repository documentation directly in VS Code, with built-in wiki generation capabilities.
 
 ## Features
 
-- 📚 Browse your repository's Code Wiki structure in the Explorer view
-- 📖 View wiki files in a custom webview with proper markdown rendering
+- 📚 Browse your repository's Code Wiki structure in a dedicated Activity Bar view
+- � Generate wiki documentation directly from your repository
+- �📖 View wiki files in a custom webview with proper markdown rendering
 - 📊 Full Mermaid diagram support with theme-aware rendering
 - 🔄 Auto-refresh when workspace folders change
 - 🎨 Matches VS Code theme colors
 - ⚠️ Comprehensive error handling for diagram rendering failures
+- 🔐 Secure API key management with system keychain integration
+
+## Installation
+
+### Build from Source
+
+1. **Install dependencies:**
+   ```bash
+   cd vscode-ext
+   npm install
+   ```
+
+2. **Compile the TypeScript code:**
+   ```bash
+   npm run compile
+   ```
+
+3. **Package the extension:**
+   ```bash
+   npm run package
+   ```
+   This creates a `code-wiki-0.1.0.vsix` file.
+
+4. **Install the extension:**
+
+   **For Local VS Code:**
+   ```bash
+   code --install-extension code-wiki-0.1.0.vsix
+   ```
+   
+   Or via VS Code UI:
+   - Open VS Code
+   - Go to Extensions view (Ctrl+Shift+X / Cmd+Shift+X)
+   - Click the `...` menu → "Install from VSIX..."
+   - Select the `code-wiki-0.1.0.vsix` file
+
+   **For Remote VS Code (SSH/WSL/Containers):**
+   - Connect to your remote environment in VS Code
+   - Open Extensions view (Ctrl+Shift+X / Cmd+Shift+X)
+   - Click the `...` menu → "Install from VSIX..."
+   - Select the `code-wiki-0.1.0.vsix` file from your local machine
+   - The extension will be installed on the remote environment
+
+5. **Reload VS Code:**
+   - Press Ctrl+Shift+P / Cmd+Shift+P
+   - Run "Developer: Reload Window"
 
 ## Usage
 
-1. Open a folder containing a Code Wiki at `.codewiki/`
-2. The "Code Wiki" view will appear in the Explorer sidebar
-3. Click on any folder or file to view its contents
-4. Folders with a corresponding markdown file (e.g., `FolderName/FolderName.md`) are directly clickable
+### Viewing Documentation
+
+1. Open a folder containing Code Wiki documentation at `.codewiki/`
+2. Click the **RepoWiki icon** in the Activity Bar (left sidebar)
+3. Browse the wiki tree structure
+4. Click on any folder or file to view its contents in the webview
+5. Folders with a corresponding markdown file (e.g., `FolderName/FolderName.md`) are directly clickable
+
+**Quick Start (Try Viewer Without Generating):**
+
+If you want to test the viewer capability without running the full generation process, you can use the reference documentation:
+
+```bash
+# Copy the reference wiki to your workspace
+cp -r .codewiki.ref .codewiki
+```
+
+This allows you to immediately explore the viewer features and see how the documentation looks before committing to a full generation.
+
+### Generating Documentation
+
+If your repository doesn't have wiki documentation yet, you can generate it directly from the extension:
+
+1. Open your repository folder in VS Code
+2. Click the **RepoWiki icon** in the Activity Bar
+3. Click the **"Generate Wiki from Repo"** button (shown when no `.codewiki` folder exists)
+4. The extension will automatically:
+   - Create/activate a Python virtual environment (`.venv`)
+   - Install CodeWiki and its dependencies
+   - Check for API key configuration
+   - Generate comprehensive documentation for your repository
+
+**First-time setup:**
+- If you haven't configured an API key, the extension will prompt you
+- Click "Set API Key" to open a terminal with setup instructions
+- Run: `codewiki config set --api-key YOUR_API_KEY`
+- Get an API key from:
+  - [iFlow](https://platform.iflow.cn/profile?tab=apiKey)
+  - [OpenAI](https://platform.openai.com/api-keys)
+  - [Anthropic](https://console.anthropic.com/settings/keys)
+  - Or your custom LLM provider
+
+**During generation:**
+- Monitor progress via the notification in VS Code
+  - Generation typically takes 30-60 minutes depending on your repository size
+- View detailed output in the "CodeWiki Generate" output channel (View → Output)
+- Cancel anytime by clicking the ❌ button on the progress notification
+
+**After generation:**
+- The wiki tree will automatically refresh
+- Browse and view the generated documentation
+- Documentation is saved in `.codewiki/` folder
 
 ## Wiki Structure
 
@@ -64,7 +159,11 @@ C -->|No| B
 
 ## Commands
 
+- **Code Wiki: Generate Wiki from Repo** - Generate comprehensive documentation for your repository
 - **Code Wiki: Refresh** - Manually refresh the wiki tree view
+- **Code Wiki: Show Debug Output** - View captured console output for debugging
+- **Code Wiki: Show Mermaid Errors** - Display Mermaid diagram rendering errors
+- **Code Wiki: Fix Mermaid Errors with Copilot** - Get AI-powered suggestions to fix diagram errors
 
 ## Development
 
@@ -88,7 +187,12 @@ See [AUTOMATION_SUMMARY.md](AUTOMATION_SUMMARY.md) for quick start guide and [do
 ## Requirements
 
 - VS Code 1.85.0 or higher
-- A workspace with a Code Wiki structure
+- A workspace with a Code Wiki structure (for viewing)
+
+**For documentation generation:**
+- Python 3.8 or higher
+- [`uv`](https://github.com/astral-sh/uv) package manager (recommended)
+- LLM API key (iFlow, OpenAI, Anthropic, or custom provider)
 
 ## Known Issues
 

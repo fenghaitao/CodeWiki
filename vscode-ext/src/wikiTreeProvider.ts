@@ -45,10 +45,15 @@ export class CodeWikiTreeProvider implements vscode.TreeDataProvider<WikiTreeIte
 
 	private workspaceRoot: string | undefined;
 	private wikiPath: string | undefined;
+	private hasWiki: boolean = false;
 
 	constructor() {
 		console.log('[CodeWiki] TreeProvider constructor called');
 		this.updateWorkspaceRoot();
+	}
+
+	public getHasWiki(): boolean {
+		return this.hasWiki;
 	}
 
 	private updateWorkspaceRoot() {
@@ -57,12 +62,19 @@ export class CodeWikiTreeProvider implements vscode.TreeDataProvider<WikiTreeIte
 		if (workspaceFolders && workspaceFolders.length > 0) {
 			this.workspaceRoot = workspaceFolders[0].uri.fsPath;
 			this.wikiPath = path.join(this.workspaceRoot, '.codewiki');
+			this.hasWiki = fs.existsSync(this.wikiPath);
 			console.log('[CodeWiki] workspaceRoot set to:', this.workspaceRoot);
 			console.log('[CodeWiki] wikiPath set to:', this.wikiPath);
+			console.log('[CodeWiki] hasWiki:', this.hasWiki);
+			
+			// Update context for views
+			vscode.commands.executeCommand('setContext', 'codewiki.hasWiki', this.hasWiki);
 		} else {
 			this.workspaceRoot = undefined;
 			this.wikiPath = undefined;
+			this.hasWiki = false;
 			console.log('[CodeWiki] No workspace folders found');
+			vscode.commands.executeCommand('setContext', 'codewiki.hasWiki', false);
 		}
 	}
 

@@ -4,6 +4,10 @@
 	"description": "View and navigate CodeWiki repository documentation directly in VS Code",
 	"version": "0.1.0",
 	"publisher": "codewiki",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/intel-sandbox/RepoWiki"
+	},
 	"engines": {
 		"vscode": "^1.85.0"
 	},
@@ -21,12 +25,20 @@
 	],
 	"main": "./out/extension.js",
 	"contributes": {
+		"viewsContainers": {
+			"activitybar": [
+				{
+					"id": "codewiki-container",
+					"title": "Code Wiki",
+					"icon": "resources/RepoWiki.png"
+				}
+			]
+		},
 		"views": {
-			"explorer": [
+			"codewiki-container": [
 				{
 					"id": "codewiki",
-					"name": "Code Wiki",
-					"icon": "$(book)",
+					"name": "Repository Wiki",
 					"contextualTitle": "CodeWiki Repository Documentation",
 					"visibility": "visible"
 				}
@@ -40,11 +52,22 @@
 			},
 			{
 				"view": "codewiki",
-				"when": "workspaceFolderCount > 0",
-				"contents": "No CodeWiki documentation found in this workspace.\n\nThe documentation should be located at `.codewiki/`"
+				"when": "workspaceFolderCount > 0 && !codewiki.hasWiki",
+				"contents": "No CodeWiki documentation found in this workspace.\n\n[Generate Wiki from Repo](command:codewiki.generate)\n\nThis will run `codewiki generate` to create documentation for your repository."
+			},
+			{
+				"view": "codewiki",
+				"when": "codewiki.isGenerating",
+				"contents": "⏳ Generating wiki documentation...\n\nPlease wait while CodeWiki analyzes your repository."
 			}
 		],
 		"commands": [
+			{
+				"command": "codewiki.generate",
+				"title": "Generate Wiki from Repo",
+				"icon": "$(sparkle)",
+				"category": "Code Wiki"
+			},
 			{
 				"command": "codewiki.refresh",
 				"title": "Refresh",
@@ -102,7 +125,12 @@
 			"view/title": [
 				{
 					"command": "codewiki.refresh",
-					"when": "view == codewiki",
+					"when": "view == codewiki && codewiki.hasWiki",
+					"group": "navigation"
+				},
+				{
+					"command": "codewiki.generate",
+					"when": "view == codewiki && !codewiki.hasWiki && !codewiki.isGenerating",
 					"group": "navigation"
 				}
 			]

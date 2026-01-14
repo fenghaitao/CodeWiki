@@ -1,14 +1,20 @@
 import * as vscode from 'vscode';
+import * as fs from 'fs';
+import * as path from 'path';
+import { exec } from 'child_process';
+import { promisify } from 'util';
 import { CodeWikiTreeProvider } from './wikiTreeProvider';
 import { WikiViewerProvider } from './wikiViewerProvider';
 import { DebugOutputService, IDebugOutputService } from './debugOutputService';
 import { MermaidErrorFixer } from './mermaidErrorFixer';
 
+const execAsync = promisify(exec);
+
 export function activate(context: vscode.ExtensionContext) {
 	console.log('[CodeWiki] Extension activating');
 	console.log('[CodeWiki] Current workspace folders:', vscode.workspace.workspaceFolders?.length || 0);
 	if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
-		console.log('[CodeWiki] Workspace folder paths:', vscode.workspace.workspaceFolders.map(f => f.uri.fsPath).join(', '));
+		console.log('[CodeWiki] Workspace folder paths:', vscode.workspace.workspaceFolders.map((f: vscode.WorkspaceFolder) => f.uri.fsPath).join(', '));
 	}
 
 	// Create debug output service
@@ -46,6 +52,165 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.commands.registerCommand('codewiki.refresh', () => {
 			console.log('[CodeWiki] Refresh command triggered');
 			treeProvider.refresh();
+		})
+	);
+
+	context.subscriptions.push(
+		vscode.commands.registerCommand('codewiki.generate', async () => {
+			console.log('[CodeWiki] Generate command triggered');
+			if (!vscode.workspace.workspaceFolders || vscode.workspace.workspaceFolders.length === 0) {
+				vscode.window.showErrorMessage('No workspace folder is open. Please open a folder first.');
+				return;
+			}
+			const workspaceRoot = vscode.workspace.workspaceFolders[0].uri.fsPath;
+			vscode.commands.executeCommand('setContext', 'codewiki.isGenerating', true);
+
+			let cancelled = false;
+			let currentProcess: ReturnType<typeof exec> | undefined;
+
+			await vscode.window.withProgress({
+				location: vscode.ProgressLocation.Notification,
+				title: 'Generating CodeWiki documentation',
+				cancellable: true
+			}, async (progress, token) => {
+				
+				// Handle cancellation
+				token.onCancellationRequested(() => {
+					cancelled = true;
+					if (currentProcess) {
+						currentProcess.kill();
+					}
+					vscode.commands.executeCommand('setContext', 'codewiki.isGenerating', false);
+					vscode.window.showWarningMessage('CodeWiki generation cancelled.');
+				});
+
+				try {
+					const venvPath = path.join(workspaceRoot, '.venv');
+					const venvExists = fs.existsSync(venvPath);
+					const activateCmd = 'source .venv/bin/activate';
+
+					// Step 1: Create or activate venv
+					if (!venvExists) {
+						progress.report({ message: 'Creating virtual environment...' });
+						currentProcess = exec('uv venv', { cwd: workspaceRoot });
+						await new Promise((resolve, reject) => {
+							currentProcess!.on('close', (code) => {
+								if (code === 0) resolve(null);
+								else reject(new Error(`uv venv failed with code ${code}`));
+							});
+						});
+						if (cancelled) return;
+					}
+
+					// Step 2: Install dependencies
+					progress.report({ message: 'Installing dependencies...' });
+					currentProcess = exec(`${activateCmd} && uv pip install -e .`, { cwd: workspaceRoot });
+					await new Promise((resolve, reject) => {
+						currentProcess!.on('close', (code) => {
+							if (code === 0) resolve(null);
+							else reject(new Error(`pip install failed with code ${code}`));
+						});
+					});
+					if (cancelled) return;
+
+					// Step 3: Check configuration
+					progress.report({ message: 'Checking configuration...' });
+					currentProcess = exec(`${activateCmd} && codewiki config show`, { cwd: workspaceRoot });
+					
+					let configOutput = '';
+					currentProcess.stdout?.on('data', (data) => {
+						configOutput += data.toString();
+					});
+					
+					await new Promise((resolve, reject) => {
+						currentProcess!.on('close', (code) => {
+							if (code === 0) resolve(null);
+							else reject(new Error(`config show failed with code ${code}`));
+						});
+					});
+					
+					if (cancelled) return;
+					
+					// Check if API key is set
+					const hasApiKey = configOutput.includes('(in system keychain)') || 
+					                  (configOutput.includes('API Key:') && !configOutput.includes('Not set'));
+					
+					if (!hasApiKey) {
+						vscode.commands.executeCommand('setContext', 'codewiki.isGenerating', false);
+						
+						const result = await vscode.window.showErrorMessage(
+							'CodeWiki API key is not configured.',
+							'Set API Key',
+							'Learn More',
+							'Cancel'
+						);
+						
+						if (result === 'Set API Key') {
+							const terminal = vscode.window.createTerminal({
+								name: 'CodeWiki Setup',
+								cwd: workspaceRoot
+							});
+							terminal.show();
+							terminal.sendText(activateCmd);
+							terminal.sendText('echo "=================================="');
+							terminal.sendText('echo "CodeWiki Configuration Setup"');
+							terminal.sendText('echo "=================================="');
+							terminal.sendText('echo ""');
+							terminal.sendText('echo "Run: codewiki config set --api-key YOUR_API_KEY"');
+							terminal.sendText('echo ""');
+							terminal.sendText('echo "Get API key from:"');
+							terminal.sendText('echo "  - OpenAI: https://platform.openai.com/api-keys"');
+							terminal.sendText('echo "  - Anthropic: https://console.anthropic.com/settings/keys"');
+							terminal.sendText('echo "  - Or your custom LLM provider"');
+							terminal.sendText('echo "=================================="');
+						} else if (result === 'Learn More') {
+							vscode.env.openExternal(vscode.Uri.parse('https://github.com/intel-sandbox/RepoWiki#configuration'));
+						}
+						return;
+					}
+
+					// Step 4: Generate documentation
+					progress.report({ message: 'Generating documentation...' });
+					currentProcess = exec(`${activateCmd} && codewiki generate --output .codewiki`, { 
+						cwd: workspaceRoot,
+						maxBuffer: 10 * 1024 * 1024 // 10MB buffer for large outputs
+					});
+					
+					// Stream output to output channel for debugging
+					const outputChannel = vscode.window.createOutputChannel('CodeWiki Generate');
+					currentProcess.stdout?.on('data', (data) => {
+						outputChannel.appendLine(data.toString());
+					});
+					currentProcess.stderr?.on('data', (data) => {
+						outputChannel.appendLine(`[ERROR] ${data.toString()}`);
+					});
+					
+					await new Promise((resolve, reject) => {
+						currentProcess!.on('close', (code) => {
+							if (code === 0) resolve(null);
+							else reject(new Error(`codewiki generate failed with code ${code}`));
+						});
+					});
+					
+					if (cancelled) return;
+
+					// Success! Update UI to switch to view mode
+					await vscode.commands.executeCommand('setContext', 'codewiki.isGenerating', false);
+					
+					// Small delay to ensure .codewiki directory is fully written
+					await new Promise(resolve => setTimeout(resolve, 500));
+					
+					treeProvider.refresh(); // This will update codewiki.hasWiki context and show the tree view
+					vscode.window.showInformationMessage('CodeWiki documentation generated successfully!');
+					
+				} catch (error) {
+					await vscode.commands.executeCommand('setContext', 'codewiki.isGenerating', false);
+					if (!cancelled) {
+						const message = error instanceof Error ? error.message : 'Unknown error';
+						vscode.window.showErrorMessage(`CodeWiki generation failed: ${message}`);
+					}
+				}
+			});
 		})
 	);
 

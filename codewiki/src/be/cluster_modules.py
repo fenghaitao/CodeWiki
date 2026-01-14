@@ -5,7 +5,7 @@ import traceback
 logger = logging.getLogger(__name__)
 
 from codewiki.src.be.dependency_analyzer.models.core import Node
-from codewiki.src.be.llm_services import call_llm
+#from codewiki.src.be.llm_services import call_llm
 from codewiki.src.be.utils import count_tokens
 from codewiki.src.config import Config
 from codewiki.src.be.prompt_template import format_cluster_prompt
@@ -59,7 +59,15 @@ def cluster_modules(
         return {}
 
     prompt = format_cluster_prompt(potential_core_components, current_module_tree, current_module_name)
-    response = call_llm(prompt, config, model=config.cluster_model)
+
+    # Determine which LLM service to use based on model name
+    model_name = config.cluster_model
+    if model_name.startswith("github_copilot/"):
+        from codewiki.src.be.copilot_llm_services import call_llm
+    else:
+        from codewiki.src.be.llm_services import call_llm
+
+    response = call_llm(prompt, config, model=model_name)
 
     #parse the response
     try:

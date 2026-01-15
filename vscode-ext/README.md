@@ -68,16 +68,23 @@ View and navigate Code Wiki repository documentation directly in VS Code, with b
 4. Click on any folder or file to view its contents in the webview
 5. Folders with a corresponding markdown file (e.g., `FolderName/FolderName.md`) are directly clickable
 
-**Quick Start (Try Viewer Without Generating):**
+**Quick Start (Try Viewer First):**
 
-If you want to test the viewer capability without running the full generation process, you can use the reference documentation:
+The repository includes a `.codewiki` folder with reference documentation. You can immediately:
+- Click the **RepoWiki icon** in the Activity Bar
+- Browse and explore the viewer features
+- See how the documentation looks
+
+**To Test the Generation Flow:**
+
+If you want to test the wiki generation process:
 
 ```bash
-# Copy the reference wiki to your workspace
-cp -r .codewiki.ref .codewiki
+# Rename the existing .codewiki folder
+mv .codewiki .codewiki.backup
 ```
 
-This allows you to immediately explore the viewer features and see how the documentation looks before committing to a full generation.
+Then reload VS Code (Ctrl+Shift+P / Cmd+Shift+P → "Developer: Reload Window") to see the "Generate Wiki from Repo" button and try the full generation workflow.
 
 ### Generating Documentation
 

@@ -506,7 +506,7 @@ OBJECT_VALUE
 			const memberMatch = line.match(/^(\s*[+\-#~])(.+)$/);
 			if (memberMatch) {
 				const visibility = memberMatch[1];
-				let rest = memberMatch[2].trim();
+				const rest = memberMatch[2].trim();
 
 				const colonIndex = rest.indexOf(':');
 				if (colonIndex > 0) {

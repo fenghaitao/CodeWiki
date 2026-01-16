@@ -95,11 +95,11 @@ export function activate(context: vscode.ExtensionContext) {
 						currentProcess = exec('uv venv', { cwd: workspaceRoot });
 						await new Promise((resolve, reject) => {
 							currentProcess!.on('close', (code) => {
-								if (code === 0) resolve(null);
-								else reject(new Error(`uv venv failed with code ${code}`));
+								if (code === 0) {resolve(null);}
+								else {reject(new Error(`uv venv failed with code ${code}`));}
 							});
 						});
-						if (cancelled) return;
+						if (cancelled) {return;}
 					}
 
 					// Step 2: Install dependencies
@@ -107,11 +107,11 @@ export function activate(context: vscode.ExtensionContext) {
 					currentProcess = exec(`${activateCmd} && uv pip install -e .`, { cwd: workspaceRoot });
 					await new Promise((resolve, reject) => {
 						currentProcess!.on('close', (code) => {
-							if (code === 0) resolve(null);
-							else reject(new Error(`pip install failed with code ${code}`));
+							if (code === 0) {resolve(null);}
+							else {reject(new Error(`pip install failed with code ${code}`));}
 						});
 					});
-					if (cancelled) return;
+					if (cancelled) {return;}
 
 					// Step 3: Check configuration
 					progress.report({ message: 'Checking configuration...' });
@@ -124,12 +124,12 @@ export function activate(context: vscode.ExtensionContext) {
 					
 					await new Promise((resolve, reject) => {
 						currentProcess!.on('close', (code) => {
-							if (code === 0) resolve(null);
-							else reject(new Error(`config show failed with code ${code}`));
+							if (code === 0) {resolve(null);}
+							else {reject(new Error(`config show failed with code ${code}`));}
 						});
 					});
 					
-					if (cancelled) return;
+					if (cancelled) {return;}
 					
 					// Check if API key is set
 					const hasApiKey = configOutput.includes('(in system keychain)') || 
@@ -187,12 +187,12 @@ export function activate(context: vscode.ExtensionContext) {
 					
 					await new Promise((resolve, reject) => {
 						currentProcess!.on('close', (code) => {
-							if (code === 0) resolve(null);
-							else reject(new Error(`codewiki generate failed with code ${code}`));
+							if (code === 0) {resolve(null);}
+							else {reject(new Error(`codewiki generate failed with code ${code}`));}
 						});
 					});
 					
-					if (cancelled) return;
+					if (cancelled) {return;}
 
 					// Success! Update UI to switch to view mode
 					await vscode.commands.executeCommand('setContext', 'codewiki.isGenerating', false);

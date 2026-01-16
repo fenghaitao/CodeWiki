@@ -2,35 +2,45 @@
 	"name": "code-wiki",
 	"displayName": "Code Wiki",
 	"description": "View and navigate CodeWiki repository documentation directly in VS Code",
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"publisher": "codewiki",
+	"license": "MIT",
+	"icon": "resources/RepoWiki.png",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/intel-sandbox/RepoWiki"
 	},
+	"bugs": {
+		"url": "https://github.com/intel-sandbox/RepoWiki/issues"
+	},
+	"homepage": "https://github.com/intel-sandbox/RepoWiki#readme",
 	"engines": {
 		"vscode": "^1.85.0"
 	},
 	"categories": [
+		"Visualization",
+		"Programming Languages",
 		"Other"
 	],
 	"keywords": [
 		"codewiki",
 		"wiki",
 		"documentation",
-		"markdown"
+		"markdown",
+		"mermaid",
+		"diagrams",
+		"code-analysis",
+		"repository"
 	],
-	"activationEvents": [
-		"onStartupFinished"
-	],
-	"main": "./out/extension.js",
+	"activationEvents": [],
+	"main": "./dist/extension.js",
 	"contributes": {
 		"viewsContainers": {
 			"activitybar": [
 				{
 					"id": "codewiki-container",
 					"title": "Code Wiki",
-					"icon": "resources/RepoWiki.png"
+					"icon": "resources/RepoWiki.svg"
 				}
 			]
 		},
@@ -154,23 +164,49 @@
 					],
 					"default": "auto",
 					"description": "Theme for Mermaid diagrams"
+				},
+				"codewiki.maxFileSize": {
+					"type": "number",
+					"default": 10485760,
+					"description": "Maximum file size in bytes for processing (default: 10MB)",
+					"minimum": 1024,
+					"maximum": 104857600
+				},
+				"codewiki.enablePerformanceMonitoring": {
+					"type": "boolean",
+					"default": false,
+					"description": "Enable performance monitoring and logging"
+				},
+				"codewiki.debugMode": {
+					"type": "boolean",
+					"default": false,
+					"description": "Enable debug mode with verbose logging"
 				}
 			}
 		}
 	},
 	"scripts": {
-		"vscode:prepublish": "npm run compile",
+		"vscode:prepublish": "npm run package",
 		"compile": "tsc -p ./",
-		"watch": "tsc -watch -p ./",
-		"pretest": "npm run compile",
+		"watch": "npm run build -- --watch",
+		"build": "node esbuild.js",
+		"package": "node esbuild.js --production",
+		"compile-tests": "tsc -p . --outDir out",
+		"watch-tests": "tsc -p . -w --outDir out",
+		"pretest": "npm run compile-tests",
 		"test": "jest",
 		"test:watch": "jest --watch",
 		"test:coverage": "jest --coverage",
 		"test:integration": "jest tests/integration",
 		"lint": "eslint src --ext ts",
-		"package": "vsce package",
+		"lint:fix": "eslint src --ext ts --fix",
+		"format": "prettier --write \"src/**/*.ts\"",
+		"format:check": "prettier --check \"src/**/*.ts\"",
+		"package:vsix": "vsce package",
 		"scan:mermaid": "node scripts/scan-mermaid-errors.js",
-		"fix:mermaid": "node scripts/scan-mermaid-errors.js && echo '\n📋 Review MERMAID_FIX_PROMPT.txt and copy to Copilot'"
+		"fix:mermaid": "node scripts/scan-mermaid-errors.js && echo '\n📋 Review MERMAID_FIX_PROMPT.txt and copy to Copilot'",
+		"clean": "rm -rf dist out coverage .jest-cache",
+		"analyze": "node esbuild.js --production --metafile && esbuild-visualizer --metadata dist/meta.json"
 	},
 	"dependencies": {
 		"marked": "^11.0.0",
@@ -185,15 +221,12 @@
 		"@typescript-eslint/parser": "^6.x",
 		"@vscode/vsce": "^3.7.0",
 		"dompurify": "^3.3.0",
+		"esbuild": "^0.19.12",
 		"eslint": "^8.x",
 		"jest": "^29.7.0",
 		"jsdom": "^27.2.0",
+		"prettier": "^3.8.0",
 		"ts-jest": "^29.4.5",
 		"typescript": "^5.3.0"
-	},
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/fenghaitao/codewiki.git"
-	},
-	"license": "MIT"
+	}
 }

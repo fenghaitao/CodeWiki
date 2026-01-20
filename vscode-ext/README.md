@@ -32,26 +32,26 @@ View and navigate Code Wiki repository documentation directly in VS Code, with b
    ```bash
    npm run package
    ```
-   This creates a `code-wiki-0.1.0.vsix` file.
+   This builds and packages the extension, creating a `code-wiki-0.2.0.vsix` file.
 
 4. **Install the extension:**
 
    **For Local VS Code:**
    ```bash
-   code --install-extension code-wiki-0.1.0.vsix
+   code --install-extension code-wiki-0.2.0.vsix
    ```
    
    Or via VS Code UI:
    - Open VS Code
    - Go to Extensions view (Ctrl+Shift+X / Cmd+Shift+X)
    - Click the `...` menu → "Install from VSIX..."
-   - Select the `code-wiki-0.1.0.vsix` file
+   - Select the `code-wiki-0.2.0.vsix` file
 
    **For Remote VS Code (SSH/WSL/Containers):**
    - Connect to your remote environment in VS Code
    - Open Extensions view (Ctrl+Shift+X / Cmd+Shift+X)
    - Click the `...` menu → "Install from VSIX..."
-   - Select the `code-wiki-0.1.0.vsix` file from your local machine
+   - Select the `code-wiki-0.2.0.vsix` file from your local machine
    - The extension will be installed on the remote environment
 
 5. **Reload VS Code:**

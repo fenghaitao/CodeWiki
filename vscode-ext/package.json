@@ -186,11 +186,12 @@
 		}
 	},
 	"scripts": {
-		"vscode:prepublish": "npm run package",
+		"vscode:prepublish": "npm run build:prod",
 		"compile": "tsc -p ./",
 		"watch": "npm run build -- --watch",
 		"build": "node esbuild.js",
-		"package": "node esbuild.js --production",
+		"build:prod": "node esbuild.js --production",
+		"package": "npm run build:prod && vsce package",
 		"compile-tests": "tsc -p . --outDir out",
 		"watch-tests": "tsc -p . -w --outDir out",
 		"pretest": "npm run compile-tests",
@@ -202,7 +203,6 @@
 		"lint:fix": "eslint src --ext ts --fix",
 		"format": "prettier --write \"src/**/*.ts\"",
 		"format:check": "prettier --check \"src/**/*.ts\"",
-		"package:vsix": "vsce package",
 		"scan:mermaid": "node scripts/scan-mermaid-errors.js",
 		"fix:mermaid": "node scripts/scan-mermaid-errors.js && echo '\n📋 Review MERMAID_FIX_PROMPT.txt and copy to Copilot'",
 		"clean": "rm -rf dist out coverage .jest-cache",

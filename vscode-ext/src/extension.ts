@@ -138,35 +138,46 @@ export function activate(context: vscode.ExtensionContext) {
 					if (!hasApiKey) {
 						vscode.commands.executeCommand('setContext', 'codewiki.isGenerating', false);
 						
-						const result = await vscode.window.showErrorMessage(
-							'CodeWiki API key is not configured.',
-							'Set API Key',
-							'Learn More',
-							'Cancel'
-						);
+						// Prompt user to input API key directly
+						const apiKey = await vscode.window.showInputBox({
+							prompt: 'Please get your key from https://platform.iflow.cn/profile?tab=apiKey and paste it here',
+							password: true,
+							placeHolder: 'Enter your API key',
+							ignoreFocusOut: true,
+							validateInput: (value) => {
+								if (!value || value.trim().length < 10) {
+									return 'API key must be at least 10 characters';
+								}
+								return null;
+							}
+						});
 						
-						if (result === 'Set API Key') {
-							const terminal = vscode.window.createTerminal({
-								name: 'CodeWiki Setup',
-								cwd: workspaceRoot
-							});
-							terminal.show();
-							terminal.sendText(activateCmd);
-							terminal.sendText('echo "=================================="');
-							terminal.sendText('echo "CodeWiki Configuration Setup"');
-							terminal.sendText('echo "=================================="');
-							terminal.sendText('echo ""');
-							terminal.sendText('echo "Run: codewiki config set --api-key YOUR_API_KEY"');
-							terminal.sendText('echo ""');
-							terminal.sendText('echo "Get API key from:"');
-							terminal.sendText('echo "  - OpenAI: https://platform.openai.com/api-keys"');
-							terminal.sendText('echo "  - Anthropic: https://console.anthropic.com/settings/keys"');
-							terminal.sendText('echo "  - Or your custom LLM provider"');
-							terminal.sendText('echo "=================================="');
-						} else if (result === 'Learn More') {
-							vscode.env.openExternal(vscode.Uri.parse('https://github.com/intel-sandbox/RepoWiki#configuration'));
+						if (!apiKey) {
+							// User cancelled
+							vscode.window.showWarningMessage('CodeWiki generation cancelled: API key required.');
+							return;
 						}
-						return;
+						
+						// Set the API key using codewiki config
+						progress.report({ message: 'Configuring API key...' });
+						try {
+							const setKeyCommand = `${activateCmd} && codewiki config set --api-key "${apiKey.trim()}"`;
+							const { stdout: setKeyOutput, stderr: setKeyError } = await execAsync(setKeyCommand, { 
+								cwd: workspaceRoot 
+							});
+							
+							if (setKeyError && !setKeyError.includes('successfully')) {
+								throw new Error(setKeyError);
+							}
+							
+							vscode.window.showInformationMessage('API key configured successfully!');
+						} catch (error) {
+							vscode.commands.executeCommand('setContext', 'codewiki.isGenerating', false);
+							vscode.window.showErrorMessage(
+								`Failed to configure API key: ${error instanceof Error ? error.message : String(error)}`
+							);
+							return;
+						}
 					}
 
 					// Step 4: Generate documentation

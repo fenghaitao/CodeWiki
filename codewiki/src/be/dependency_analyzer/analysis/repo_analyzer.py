@@ -112,8 +112,11 @@ class RepoAnalyzer:
     def _should_include_file(self, path: str, filename: str) -> bool:
         if not self.include_patterns:
             return True
+        path_parts = path.split(os.sep)
         for pattern in self.include_patterns:
-            if fnmatch.fnmatch(path, pattern) or fnmatch.fnmatch(filename, pattern):
+            if fnmatch.fnmatch(path, pattern) or \
+                fnmatch.fnmatch(filename, pattern) or \
+                pattern in path_parts:
                 return True
         return False
 

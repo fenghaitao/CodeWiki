@@ -450,18 +450,19 @@ def config_validate(quick: bool, verbose: bool):
         
         if not config.base_url:
             click.secho("✗ Base URL not set", fg="red")
-            sys.exit(EXIT_CONFIG_ERROR)
+            # sys.exit(EXIT_CONFIG_ERROR)
         
-        try:
-            validate_url(config.base_url)
-            if verbose:
-                click.secho("      ✓ Valid HTTPS URL", fg="green")
-            else:
-                click.secho(f"✓ Base URL valid: {config.base_url}", fg="green")
-        except ConfigurationError as e:
-            click.secho(f"✗ Invalid base URL: {e.message}", fg="red")
-            sys.exit(EXIT_CONFIG_ERROR)
-        
+        if config.base_url and config.base_url.strip() != '':
+            try:
+                validate_url(config.base_url)
+                if verbose:
+                    click.secho("      ✓ Valid HTTPS URL", fg="green")
+                else:
+                    click.secho(f"✓ Base URL valid: {config.base_url}", fg="green")
+            except ConfigurationError as e:
+                click.secho(f"✗ Invalid base URL: {e.message}", fg="red")
+                sys.exit(EXIT_CONFIG_ERROR)
+            
         # Step 4: Check models
         if verbose:
             click.echo()
@@ -491,12 +492,30 @@ def config_validate(quick: bool, verbose: bool):
         # Step 5: API connectivity test (unless --quick)
         if not quick:
             try:
-                from openai import OpenAI
-                client = OpenAI(api_key=api_key, base_url=config.base_url)
-                response = client.models.list()
-                click.secho("✓ API connectivity test successful", fg="green")
+                import litellm
+                # Test with a minimal completion request
+                if config.base_url != '':
+                    response = litellm.completion(
+                        model=config.main_model,
+                        messages=[{"role": "user", "content": "test"}],
+                        api_key=api_key,
+                        base_url=config.base_url,
+                        max_tokens=1
+                    )
+                else:
+                    response = litellm.completion(
+                        model=config.main_model,
+                        messages=[{"role": "user", "content": "test"}],
+                        api_key=api_key,
+                        max_tokens=1
+                    )
+                if response and response.choices:
+                    click.secho("✓ API connectivity test successful", fg="green")
+                else:
+                    click.secho("✗ API connectivity test failed: No response", fg="red")
+                    sys.exit(EXIT_CONFIG_ERROR)
             except Exception as e:
-                click.secho("✗ API connectivity test failed", fg="red")
+                click.secho(f"✗ API connectivity test failed: {str(e)}", fg="red")
                 sys.exit(EXIT_CONFIG_ERROR)
         
         # Success

@@ -199,6 +199,7 @@ CODE_EXTENSIONS = {
     ".kt": "kotlin",
     ".scala": "scala",
     ".cs": "csharp",
+    ".dml": "dml",
 }
 
 # Entry point file patterns for all supported languages

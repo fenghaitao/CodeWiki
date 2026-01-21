@@ -32,8 +32,9 @@ enc = tiktoken.encoding_for_model("gpt-4")
 def count_tokens(text: str) -> int:
     """
     Count the number of tokens in a text.
+    Disables special token checking to allow literal special tokens in code/documentation.
     """
-    length = len(enc.encode(text))
+    length = len(enc.encode(text, disallowed_special=()))
     # logger.debug(f"Number of tokens: {length}")
     return length
 

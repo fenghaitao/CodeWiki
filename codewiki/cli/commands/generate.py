@@ -41,6 +41,13 @@ def parse_patterns(patterns_str: str) -> List[str]:
 
 @click.command(name="generate")
 @click.option(
+    "--root",
+    "-r",
+    type=click.Path(exists=True, file_okay=False, dir_okay=True),
+    default=None,
+    help="Root directory of the repository (default: current directory)",
+)
+@click.option(
     "--output",
     "-o",
     type=click.Path(),
@@ -129,6 +136,7 @@ def parse_patterns(patterns_str: str) -> List[str]:
 @click.pass_context
 def generate_command(
     ctx,
+    root: Optional[str],
     output: str,
     create_branch: bool,
     github_pages: bool,
@@ -222,7 +230,7 @@ def generate_command(
         # Validate repository
         logger.step("Validating repository...", 2, 4)
         
-        repo_path = Path.cwd()
+        repo_path = Path(root).expanduser().resolve() if root else Path.cwd()
         repo_path, languages = validate_repository(repo_path)
         
         logger.success(f"Repository valid: {repo_path.name}")

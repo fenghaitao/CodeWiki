@@ -3,6 +3,7 @@ Configuration manager with keyring integration for secure credential storage.
 """
 
 import json
+import base64
 from pathlib import Path
 from typing import Optional
 import keyring
@@ -20,6 +21,7 @@ KEYRING_API_KEY_ACCOUNT = "api_key"
 # Configuration file location
 CONFIG_DIR = Path.home() / ".codewiki"
 CONFIG_FILE = CONFIG_DIR / "config.json"
+CREDENTIALS_FILE = CONFIG_DIR / ".credentials"  # Fallback for API key
 CONFIG_VERSION = "1.0"
 
 
@@ -42,10 +44,18 @@ class ConfigManager:
     def _check_keyring_available(self) -> bool:
         """Check if system keyring is available."""
         try:
+            # Try to get the current backend
+            backend = keyring.get_keyring()
+            backend_name = backend.__class__.__name__
+            
+            # Check if it's a real backend (not null or fail)
+            if 'fail' in backend_name.lower() or 'null' in backend_name.lower():
+                return False
+            
             # Try to get/set a test value
             keyring.get_password(KEYRING_SERVICE, "__test__")
             return True
-        except KeyringError:
+        except (KeyringError, Exception):
             return False
     
     def load(self) -> bool:
@@ -70,12 +80,21 @@ class ConfigManager:
             
             self._config = Configuration.from_dict(data)
             
-            # Load API key from keyring
-            try:
-                self._api_key = keyring.get_password(KEYRING_SERVICE, KEYRING_API_KEY_ACCOUNT)
-            except KeyringError:
-                # Keyring unavailable, API key will be None
-                pass
+            # Load API key from keyring or fallback file
+            if self._keyring_available:
+                try:
+                    self._api_key = keyring.get_password(KEYRING_SERVICE, KEYRING_API_KEY_ACCOUNT)
+                except KeyringError:
+                    pass
+            
+            # Fallback: try to load from credentials file
+            if self._api_key is None and CREDENTIALS_FILE.exists():
+                try:
+                    encoded_key = safe_read(CREDENTIALS_FILE).strip()
+                    self._api_key = base64.b64decode(encoded_key).decode('utf-8')
+                except Exception:
+                    # If decoding fails, file may be corrupted
+                    pass
             
             return True
         except (json.JSONDecodeError, FileSystemError) as e:
@@ -157,14 +176,27 @@ class ConfigManager:
         # Save API key to keyring
         if api_key is not None:
             self._api_key = api_key
-            try:
-                keyring.set_password(KEYRING_SERVICE, KEYRING_API_KEY_ACCOUNT, api_key)
-            except KeyringError as e:
-                # Fallback: warn about keyring unavailability
-                raise ConfigurationError(
-                    f"System keychain unavailable: {e}\n"
-                    f"Please ensure your system keychain is properly configured."
-                )
+            
+            if self._keyring_available:
+                try:
+                    keyring.set_password(KEYRING_SERVICE, KEYRING_API_KEY_ACCOUNT, api_key)
+                except KeyringError:
+                    # Keyring failed, fall back to file storage
+                    self._keyring_available = False
+            
+            # Fallback: save to encoded file if keyring unavailable
+            if not self._keyring_available:
+                try:
+                    # Encode the API key (basic obfuscation)
+                    encoded_key = base64.b64encode(api_key.encode('utf-8')).decode('utf-8')
+                    safe_write(CREDENTIALS_FILE, encoded_key)
+                    # Set restrictive permissions (owner read/write only)
+                    CREDENTIALS_FILE.chmod(0o600)
+                except FileSystemError as e:
+                    raise ConfigurationError(
+                        f"Failed to save API key: {e}\n"
+                        f"Please check file permissions in {CONFIG_DIR}"
+                    )
         
         # Save non-sensitive config to JSON
         config_data = {
@@ -179,16 +211,26 @@ class ConfigManager:
     
     def get_api_key(self) -> Optional[str]:
         """
-        Get API key from keyring.
+        Get API key from keyring or fallback file.
         
         Returns:
             API key or None if not set
         """
         if self._api_key is None:
-            try:
-                self._api_key = keyring.get_password(KEYRING_SERVICE, KEYRING_API_KEY_ACCOUNT)
-            except KeyringError:
-                pass
+            # Try keyring first
+            if self._keyring_available:
+                try:
+                    self._api_key = keyring.get_password(KEYRING_SERVICE, KEYRING_API_KEY_ACCOUNT)
+                except KeyringError:
+                    pass
+            
+            # Fallback: try credentials file
+            if self._api_key is None and CREDENTIALS_FILE.exists():
+                try:
+                    encoded_key = safe_read(CREDENTIALS_FILE).strip()
+                    self._api_key = base64.b64decode(encoded_key).decode('utf-8')
+                except Exception:
+                    pass
         
         return self._api_key
     
@@ -219,12 +261,21 @@ class ConfigManager:
         return self._config.is_complete()
     
     def delete_api_key(self):
-        """Delete API key from keyring."""
+        """Delete API key from keyring and fallback file."""
+        # Try to delete from keyring
         try:
             keyring.delete_password(KEYRING_SERVICE, KEYRING_API_KEY_ACCOUNT)
-            self._api_key = None
         except KeyringError:
             pass
+        
+        # Delete fallback credentials file
+        if CREDENTIALS_FILE.exists():
+            try:
+                CREDENTIALS_FILE.unlink()
+            except Exception:
+                pass
+        
+        self._api_key = None
     
     def clear(self):
         """Clear all configuration (file and keyring)."""

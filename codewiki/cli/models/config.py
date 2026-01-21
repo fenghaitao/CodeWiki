@@ -188,8 +188,14 @@ class Configuration:
     
     def is_complete(self) -> bool:
         """Check if all required fields are set."""
+        if self.main_model.startswith("github_copilot"):
+            return bool(
+                self.main_model and 
+                self.cluster_model and
+                self.fallback_model
+            )
         return bool(
-            self.base_url and 
+            self.base_url and
             self.main_model and 
             self.cluster_model and
             self.fallback_model

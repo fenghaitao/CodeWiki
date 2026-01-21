@@ -209,6 +209,19 @@ class CLIDocumentationGenerator:
         first_module_tree_path = os.path.join(working_dir, FIRST_MODULE_TREE_FILENAME)
         module_tree_path = os.path.join(working_dir, MODULE_TREE_FILENAME)
         
+        if self.verbose:
+            # Debug: dump components and leaf_nodes
+            debug_dir = os.path.join(working_dir, "debug")
+            file_manager.ensure_directory(debug_dir)
+            file_manager.save_json(
+                {k: v.model_dump(mode='json') for k, v in components.items()},
+                os.path.join(debug_dir, "components.json")
+            )
+            file_manager.save_json(
+                {"leaf_nodes": leaf_nodes, "count": len(leaf_nodes)},
+                os.path.join(debug_dir, "leaf_nodes.json")
+            )
+        
         try:
             if os.path.exists(first_module_tree_path):
                 module_tree = file_manager.load_json(first_module_tree_path)

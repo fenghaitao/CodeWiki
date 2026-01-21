@@ -134,6 +134,8 @@ class CallGraphAnalyzer:
                 self._analyze_cpp_file(file_path, content, repo_dir)
             elif language == "php":
                 self._analyze_php_file(file_path, content, repo_dir)
+            elif language == "dml":
+                self._analyze_dml_file(file_path, content, repo_dir)
             # else:
             #     logger.warning(
             #         f"Unsupported language for call graph analysis: {language} for file {file_path}"
@@ -142,6 +144,30 @@ class CallGraphAnalyzer:
         except Exception as e:
             logger.error(f"⚠️ Error analyzing {file_path}: {str(e)}")
             logger.error(f"Traceback: {traceback.format_exc()}")
+
+    def _analyze_dml_file(self, file_path: str, content: str, repo_dir: str):
+        """
+        Analyze DML file using custom analyzer.
+
+        Args:
+            file_path: Relative path to the DML file
+            content: File content string
+            repo_dir: Repository base directory
+        """
+        from codewiki.src.be.dependency_analyzer.analyzers.dml import analyze_dml_file
+
+        try:
+            functions, relationships = analyze_dml_file(
+                file_path, content, repo_path=repo_dir
+            )
+
+            for func in functions:
+                func_id = func.id if func.id else f"{file_path}:{func.name}"
+                self.functions[func_id] = func
+
+            self.call_relationships.extend(relationships)
+        except Exception as e:
+            logger.error(f"Failed to analyze DML file {file_path}: {e}", exc_info=True)
 
     def _analyze_python_file(self, file_path: str, content: str, base_dir: str):
         """
@@ -410,6 +436,8 @@ class CallGraphAnalyzer:
                 node_classes.append("lang-cpp")
             elif file_ext in [".php", ".phtml", ".inc"]:
                 node_classes.append("lang-php")
+            elif file_ext == ".dml":
+                node_classes.append("lang-dml")
 
             cytoscape_elements.append(
                 {
